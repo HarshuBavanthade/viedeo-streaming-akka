@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Broadcaster</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        .video-container {
+            position: relative;
+            background: #0f0f23;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            margin: 20px 0;
+        }
+
+        #localVideo {
+            width: 100%;
+            max-height: 60vh;
+            display: block;
+            background: #000;
+            transform: scaleX(-1); /* Mirror effect */
+        }
+
+        .camera-selector {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .camera-selector label {
+            display: block;
+            margin-bottom: 10px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .camera-selector select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .camera-selector select:focus {
+            outline: none;
+            border-color: #ff416c;
+        }
+
+        .camera-selector select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(90deg, #00b09b, #96c93d);
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 176, 155, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 65, 108, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .status.connected {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .status.disconnected {
+            background: rgba(255, 65, 108, 0.1);
+            color: #ff416c;
+            border: 1px solid rgba(255, 65, 108, 0.3);
+        }
+
+        .status.broadcasting {
+            background: rgba(255, 65, 108, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 65, 108, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #ff416c;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .settings {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .settings h3 {
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .setting-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .setting-label {
+            color: #888;
+        }
+
+        .setting-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-input input[type="range"] {
+            width: 150px;
+            accent-color: #ff416c;
+        }
+
+        .setting-input input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            text-align: center;
+        }
+
+        .link-section {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .link-section a {
+            color: #00d2ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .link-section a:hover {
+            text-decoration: underline;
+        }
+
+        .live-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #ff0000;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: none;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .live-indicator.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+
+            .setting-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📹 Video Broadcaster</h1>
+            <p class="subtitle">Stream from your camera to all connected viewers</p>
+        </header>
+
+        <div id="statusBar" class="status disconnected">
+            📷 Camera not started
+        </div>
+
+        <div class="camera-selector">
+            <label for="cameraSelect">Select Camera:</label>
+            <select id="cameraSelect">
+                <option value="">Loading cameras...</option>
+            </select>
+        </div>
+
+        <div class="video-container">
+            <div id="liveIndicator" class="live-indicator">🔴 LIVE</div>
+            <video id="localVideo" autoplay muted playsinline></video>
+            <canvas id="captureCanvas" style="display: none;"></canvas>
+        </div>
+
+        <div class="controls">
+            <button id="startCameraBtn" class="btn btn-primary" onclick="startCamera()">
+                <span>📷</span> Start Camera
+            </button>
+            <button id="startBroadcastBtn" class="btn btn-success" onclick="startBroadcast()" disabled>
+                <span>📡</span> Start Broadcasting
+            </button>
+            <button id="stopBroadcastBtn" class="btn btn-danger" onclick="stopBroadcast()" disabled>
+                <span>⏹️</span> Stop Broadcasting
+            </button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div id="framesSent" class="stat-value">0</div>
+                <div class="stat-label">Frames Sent</div>
+            </div>
+            <div class="stat-card">
+                <div id="dataSent" class="stat-value">0 KB</div>
+                <div class="stat-label">Data Sent</div>
+            </div>
+            <div class="stat-card">
+                <div id="fps" class="stat-value">0</div>
+                <div class="stat-label">FPS</div>
+            </div>
+            <div class="stat-card">
+                <div id="broadcastTime" class="stat-value">00:00</div>
+                <div class="stat-label">Broadcast Time</div>
+            </div>
+        </div>
+
+        <div class="settings">
+            <h3>⚙️ Stream Settings</h3>
+            <div class="setting-row">
+                <span class="setting-label">Quality (JPEG)</span>
+                <div class="setting-input">
+                    <input type="range" id="qualitySlider" min="0.1" max="1" step="0.1" value="0.7">
+                    <span id="qualityValue">70%</span>
+                </div>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Target FPS</span>
+                <div class="setting-input">
+                    <input type="number" id="fpsInput" min="1" max="60" value="15">
+                </div>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">Resolution Scale</span>
+                <div class="setting-input">
+                    <input type="range" id="scaleSlider" min="0.25" max="1" step="0.25" value="0.5">
+                    <span id="scaleValue">50%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="link-section">
+            <p>Want to view the stream? <a href="/">Open Viewer →</a></p>
+        </div>
+    </div>
+
+    <script>
+        let localStream = null;
+        let ws = null;
+        let broadcastInterval = null;
+        let framesSent = 0;
+        let bytesSent = 0;
+        let broadcastStartTime = null;
+        let broadcastTimer = null;
+        let lastFrameTime = Date.now();
+        let frameCount = 0;
+
+        const video = document.getElementById('localVideo');
+        const canvas = document.getElementById('captureCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusBar = document.getElementById('statusBar');
+        const liveIndicator = document.getElementById('liveIndicator');
+        const cameraSelect = document.getElementById('cameraSelect');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const startBroadcastBtn = document.getElementById('startBroadcastBtn');
+        const stopBroadcastBtn = document.getElementById('stopBroadcastBtn');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const fpsInput = document.getElementById('fpsInput');
+        const scaleSlider = document.getElementById('scaleSlider');
+
+        // Update quality display
+        qualitySlider.addEventListener('input', () => {
+            document.getElementById('qualityValue').textContent = Math.round(qualitySlider.value * 100) + '%';
+        });
+
+        // Update scale display
+        scaleSlider.addEventListener('input', () => {
+            document.getElementById('scaleValue').textContent = Math.round(scaleSlider.value * 100) + '%';
+        });
+
+        // Get available cameras
+        async function getCameras() {
+            try {
+                // Request permission first
+                await navigator.mediaDevices.getUserMedia({ video: true });
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+                cameraSelect.innerHTML = '';
+
+                if (videoDevices.length === 0) {
+                    cameraSelect.innerHTML = '<option value="">No cameras found</option>';
+                    return;
+                }
+
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Camera ${index + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error getting cameras:', error);
+                cameraSelect.innerHTML = '<option value="">Permission denied</option>';
+                updateStatus('disconnected', '🔴 Camera permission denied');
+            }
+        }
+
+        // Camera selection change
+        cameraSelect.addEventListener('change', async () => {
+            if (localStream) {
+                await startCamera();
+            }
+        });
+
+        async function startCamera() {
+            try {
+                // Stop existing stream
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+
+                const constraints = {
+                    video: {
+                        deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                };
+
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = localStream;
+
+                updateStatus('connected', '🟢 Camera active - Ready to broadcast');
+                startCameraBtn.textContent = '🔄 Switch Camera';
+                startBroadcastBtn.disabled = false;
+
+                // Refresh camera list (labels become available after permission)
+                getCameras();
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                updateStatus('disconnected', '🔴 Failed to start camera: ' + error.message);
+            }
+        }
+
+        function startBroadcast() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/broadcast`;
+
+            ws = new WebSocket(wsUrl);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                updateStatus('broadcasting', '🔴 BROADCASTING LIVE');
+                liveIndicator.classList.add('active');
+                startBroadcastBtn.disabled = true;
+                stopBroadcastBtn.disabled = false;
+
+                broadcastStartTime = Date.now();
+                broadcastTimer = setInterval(updateStats, 1000);
+
+                // Start sending frames
+                const targetFps = parseInt(fpsInput.value) || 15;
+                const frameInterval = 1000 / targetFps;
+                broadcastInterval = setInterval(captureAndSend, frameInterval);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus('disconnected', '🔴 Connection error');
+                stopBroadcast();
+            };
+
+            ws.onclose = () => {
+                if (statusBar.classList.contains('broadcasting')) {
+                    updateStatus('connected', '🟢 Camera active - Broadcast ended');
+                }
+                liveIndicator.classList.remove('active');
+            };
+        }
+
+        function captureAndSend() {
+            if (!ws || ws.readyState !== WebSocket.OPEN || !video.videoWidth) {
+                return;
+            }
+
+            const scale = parseFloat(scaleSlider.value);
+            const quality = parseFloat(qualitySlider.value);
+
+            canvas.width = video.videoWidth * scale;
+            canvas.height = video.videoHeight * scale;
+
+            // Draw video frame (mirrored like the preview)
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            // Convert to JPEG and send
+            canvas.toBlob((blob) => {
+                if (blob && ws && ws.readyState === WebSocket.OPEN) {
+                    blob.arrayBuffer().then(buffer => {
+                        ws.send(buffer);
+                        framesSent++;
+                        bytesSent += buffer.byteLength;
+
+                        // Calculate FPS
+                        frameCount++;
+                        const now = Date.now();
+                        if (now - lastFrameTime >= 1000) {
+                            document.getElementById('fps').textContent = frameCount;
+                            frameCount = 0;
+                            lastFrameTime = now;
+                        }
+                    });
+                }
+            }, 'image/jpeg', quality);
+        }
+
+        function stopBroadcast() {
+            if (broadcastInterval) {
+                clearInterval(broadcastInterval);
+                broadcastInterval = null;
+            }
+
+            if (broadcastTimer) {
+                clearInterval(broadcastTimer);
+                broadcastTimer = null;
+            }
+
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            liveIndicator.classList.remove('active');
+            updateStatus('connected', '🟢 Camera active - Ready to broadcast');
+            startBroadcastBtn.disabled = false;
+            stopBroadcastBtn.disabled = true;
+        }
+
+        function updateStatus(status, message) {
+            statusBar.className = `status ${status}`;
+            statusBar.textContent = message;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateStats() {
+            document.getElementById('framesSent').textContent = framesSent;
+            document.getElementById('dataSent').textContent = formatBytes(bytesSent);
+
+            if (broadcastStartTime) {
+                const elapsed = (Date.now() - broadcastStartTime) / 1000;
+                document.getElementById('broadcastTime').textContent = formatTime(elapsed);
+            }
+        }
+
+        // Initialize
+        getCameras();
+    </script>
+</body>
+</html>
+

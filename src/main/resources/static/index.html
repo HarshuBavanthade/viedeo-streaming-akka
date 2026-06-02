@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Stream Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        .video-container {
+            position: relative;
+            background: #0f0f23;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            margin: 20px 0;
+        }
+
+        #videoCanvas {
+            width: 100%;
+            max-height: 70vh;
+            display: block;
+            background: #000;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 65, 108, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .status.connected {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .status.disconnected {
+            background: rgba(255, 65, 108, 0.1);
+            color: #ff416c;
+            border: 1px solid rgba(255, 65, 108, 0.3);
+        }
+
+        .status.waiting {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #00d2ff;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .link-section {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .link-section a {
+            color: #00d2ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .link-section a:hover {
+            text-decoration: underline;
+        }
+
+        .no-stream {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #666;
+        }
+
+        .no-stream svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📺 Video Stream Viewer</h1>
+            <p class="subtitle">Watch live video streams from connected cameras</p>
+        </header>
+
+        <div id="statusBar" class="status waiting">
+            ⏳ Waiting for connection...
+        </div>
+
+        <div class="video-container">
+            <canvas id="videoCanvas"></canvas>
+            <div id="noStream" class="no-stream">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <p>No stream available</p>
+                <p style="font-size: 0.9rem; margin-top: 10px;">Connect to start viewing</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="connectBtn" class="btn btn-primary" onclick="connect()">
+                <span>🔗</span> Connect to Stream
+            </button>
+            <button id="disconnectBtn" class="btn btn-danger" onclick="disconnect()" disabled>
+                <span>⏹️</span> Disconnect
+            </button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div id="framesReceived" class="stat-value">0</div>
+                <div class="stat-label">Frames Received</div>
+            </div>
+            <div class="stat-card">
+                <div id="dataReceived" class="stat-value">0 KB</div>
+                <div class="stat-label">Data Received</div>
+            </div>
+            <div class="stat-card">
+                <div id="connectionTime" class="stat-value">00:00</div>
+                <div class="stat-label">Connected Time</div>
+            </div>
+        </div>
+
+        <div class="link-section">
+            <p>Want to broadcast? <a href="/broadcaster.html">Open Broadcaster →</a></p>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let framesReceived = 0;
+        let bytesReceived = 0;
+        let connectionStartTime = null;
+        let connectionTimer = null;
+
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusBar = document.getElementById('statusBar');
+        const noStream = document.getElementById('noStream');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+
+        function updateStatus(status, message) {
+            statusBar.className = `status ${status}`;
+            statusBar.textContent = message;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateStats() {
+            document.getElementById('framesReceived').textContent = framesReceived;
+            document.getElementById('dataReceived').textContent = formatBytes(bytesReceived);
+
+            if (connectionStartTime) {
+                const elapsed = (Date.now() - connectionStartTime) / 1000;
+                document.getElementById('connectionTime').textContent = formatTime(elapsed);
+            }
+        }
+
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/view`;
+
+            ws = new WebSocket(wsUrl);
+            ws.binaryType = 'arraybuffer';
+
+            updateStatus('waiting', '⏳ Connecting...');
+            connectBtn.disabled = true;
+
+            ws.onopen = () => {
+                updateStatus('connected', '🟢 Connected - Waiting for stream...');
+                disconnectBtn.disabled = false;
+                connectionStartTime = Date.now();
+                connectionTimer = setInterval(updateStats, 1000);
+            };
+
+            ws.onmessage = (event) => {
+                framesReceived++;
+                bytesReceived += event.data.byteLength || event.data.length;
+                updateStats();
+
+                noStream.style.display = 'none';
+
+                // Convert received data to image
+                const blob = new Blob([event.data], { type: 'image/jpeg' });
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(img.src);
+                };
+                img.src = URL.createObjectURL(blob);
+
+                updateStatus('connected', '🟢 Connected - Streaming');
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus('disconnected', '🔴 Connection error');
+            };
+
+            ws.onclose = () => {
+                updateStatus('disconnected', '🔴 Disconnected');
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                clearInterval(connectionTimer);
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            noStream.style.display = 'flex';
+            updateStatus('disconnected', '🔴 Disconnected');
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+            clearInterval(connectionTimer);
+        }
+
+        // Set initial canvas size
+        canvas.width = 640;
+        canvas.height = 480;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>
+
